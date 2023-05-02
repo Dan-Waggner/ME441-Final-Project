@@ -13,6 +13,13 @@ Start Date:	01 May 2023
 End Date:	09 May 2023
 
 ==========================================================================
+Addons:
+	List of employed MatLab addons that are required in order to use
+	any of the contained MatLab scripts/functions
+
+- Aerodynamic Toolbox
+- Optimization Toolbox
+==========================================================================
 Sources
 	This section lists all original creators of any/all employed 
 	scripts, functions, etc., that were not created by the students

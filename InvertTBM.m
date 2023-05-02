@@ -8,7 +8,8 @@ function [betaanswer] = InvertTBM(theta,M,g,strength)
 %           a. if strenth =1, weak shocks (40)
 %           b. if strenth =2, strong shocks (80)
 
-f= @(beta,theta,M) theta - atand(2*cotd(beta)*(((M^2)*((sind(beta))^2))-1)/(((g+(cosd(2*beta)))*M^2)+2));
+f= @(beta,theta,M) theta - atand(2*cotd(beta)* ...
+    (((M^2)*((sind(beta))^2))-1)/(((g+(cosd(2*beta)))*M^2)+2));
 
 if strength==1
     betaguess=40;      % feel free to change if things get buggy
