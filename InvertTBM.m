@@ -17,6 +17,7 @@ elseif strength==2
     betaguess=80;
 end
 
-betaanswer = fsolve(@(beta)f(beta,theta,M), betaguess);
+options = optimset('Display','off');
+betaanswer = fsolve(@(beta)f(beta,theta,M), betaguess, options);
 
 
