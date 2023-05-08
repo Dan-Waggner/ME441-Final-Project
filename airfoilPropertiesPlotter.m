@@ -354,178 +354,178 @@ Fdrag = 0;
     Fdrag = abs(Fdrag/1000); % kN/m
 
 %%%%%%%%%%%%%%%%%%%%%%%% Handling Slip Line Region %%%%%%%%%%%%%%%%%%%%%%%%
-    % Phi Values
-    phi = linspace(-90,90,180); % degrees
-    
-    % last 2 top x-values
-    x1 = xvalstop(length(xvalstop)-1);
-    x2 = xvalstop(length(xvalstop));
-
-    % last bottom x-value (not end pt)
-    x3 = xvalsbottom(length(xvalsbottom)-1);
-    
-    % last 2 top y-values
-    y1 = yvalstop(length(yvalstop)-1);
-    y2 = yvalstop(length(yvalstop));
-
-    % last bottom y-value (not end pt)
-    y3 = yvalsbottom(length(yvalsbottom)-1);
-    
-    % Top line vector
-    [vtopendcoords, vtopendlength] = vectorGenerator(x1,x2,y1,y2);
-    vtopend = [vtopendcoords.xValue, vtopendcoords.yValue];
-
-    % Extension of top line vector
-    linfittopext = polyfit([x1, x2], [y1, y2], 1);
-    [vtopendcoordsext, vtopendlengthext] = ...
-        vectorGenerator(x2, 0.2+x2, y2,...
-                    linfittopext(1)*(0.2+x2) + linfittopext(2));
-    vtopendext = [vtopendcoordsext.xValue, vtopendcoordsext.yValue];
-
-    % Bottom line vector
-    [vbottomendcoords, vbottomendlength] = vectorGenerator(x3,x2,y3,y2);
-    vbottomend = [vbottomendcoords.xValue, ...
-        vbottomendcoords.yValue];
-
-    % Extension of bottom line vector
-    linfitbottomext = polyfit([x3, x2], [y3, y2], 1);
-    [vbottomendcoordsext, vbottomendlengthext] = ...
-        vectorGenerator(x2, 0.2+x2, y2,...
-                    linfitbottomext(1)*(0.2+x2) + linfitbottomext(2));
-    vbottomendext = [vbottomendcoordsext.xValue,...
-        vbottomendcoordsext.yValue];
-
-    for i = 1:length(phi)
-        
-        % x-value of imaginary slip line
-        x4 = x2 + lineLengthCoeff;
-    
-        % y-value of imaginary slip line
-        y4 = y2+lineLengthCoeff*sind(phi(i));
-
-        % imaginary slip line vector
-        [sliplinecoords, sliplinelength] = vectorGenerator(x3,x4,y3,y4);
-        vslipline = [sliplinecoords.xValue, sliplinecoords.yValue];
-    
-        % "side c" for law of cosines - top
-        [sidectopcoords, sidectoplength] = ...
-            vectorGenerator(vtopendext(1), vslipline(1),...
-            vtopendext(2), vslipline(2));
-        vsidectop = [sidectopcoords.xValue, sidectopcoords.yValue];
-    
-        % "side c" for law of cosines - bottom
-        [sidecbottomcoords, sidecbottomlength] = ...
-            vectorGenerator(vbottomendext(1), vslipline(1),...
-            vbottomendext(2), vslipline(2));
-        vsidecbottom = [sidecbottomcoords.xValue,...
-            sidecbottomcoords.yValue];
-    
-        % Vectors from
-        
-        % Compute Top Turning Angle via Vectors
-        %   Law of Cosines
-        thetaTop = acosd((vtopendlengthext^2 + sliplinelength^2 ...
-            - sidectoplength^2) / (2 * vtopendlengthext ...
-            * sliplinelength));     % degrees
-
-        thetaDirectionTop = AngleIn2D(vtopendext,...
-                    vslipline);
-    
-        % Compute Top Turning Angle via Vectors
-        %   Law of Cosines
-        thetaBottom = acosd((vbottomendlengthext^2 + sliplinelength^2 ...
-            - sidecbottomlength^2) / (2 * vbottomendlengthext ...
-            * sliplinelength));     % degrees
-
-        thetaDirectionBottom = -AngleIn2D(vbottomendext,...
-                    vslipline);
-        
-        if thetaDirectionTop < 0
-            [~, nu1, ~] = flowprandtlmeyer(...
-                gamma, Mend(1), 'mach');
-            nu2 = nu1 - thetaTop;
-            [Mslip(1), nu2, ~] = flowprandtlmeyer(...
-                gamma, abs(nu2), 'nu');
-            %   After
-            [~, ~, P, rho, ~] = ...
-                flowisentropic(gamma, Mslip(1));
-            PstaticTop = PendStag(1) / P;
-            Rho01 = Rho01 * rho;
-            
-        else
-            betaEnd(1) = InvertTBM(thetaTop, Mend(1), gamma, 1);
-    
-            % Flow Conditions
-            state.mach = Mend(1);
-            state.pressure = Pend(1);
-            state.temp = Tend(1);
-            state.rho = rhoEnd(1);
-            
-            shock.machNorm = Mend(1)*sind(betaEnd(1));
-            shock.theta = thetaTop;
-            shock.beta = betaEnd(1);
-
-            fluid.gam = gamma;
-            fluid.R = R;
-
-            % Oblique Shock Properties
-            [state, shock, ~] = oblique_shock(state,...
-                shock, fluid);
-            PstaticTop = state.pressure(2);
-            Rho01 = state.rho(2);
-            Mslip(1) = state.mach(2);
-        end
-
-        if thetaDirectionBottom < 0
-            [~, nu1, ~] = flowprandtlmeyer(...
-                gamma, Mend(1), 'mach');
-            nu2 = nu1 - thetaBottom;
-            [Mslip(2), nu2, ~] = flowprandtlmeyer(...
-                gamma, abs(nu2), 'nu');
-            %   After
-            [~, ~, P, rho, ~] = ...
-                flowisentropic(gamma, Mslip(2));
-            PstaticBottom = PendStag(2) / P;
-            Rho01 = Rho01 * rho;
-            
-        else
-            betaEnd(2) = InvertTBM(thetaBottom, Mend(2), gamma, 1);
-    
-            % Flow Conditions
-            state.mach = Mend(2);
-            state.pressure = Pend(2);
-            state.temp = Tend(2);
-            state.rho = rhoEnd(2);
-            
-            shock.machNorm = Mend(2)*sind(betaEnd(2));
-            shock.theta = thetaBottom;
-            shock.beta = betaEnd(2);
-
-            fluid.gam = gamma;
-            fluid.R = R;
-
-            % Oblique Shock Properties
-            [state, shock, ~] = oblique_shock(state,...
-                shock, fluid);
-            PstaticBottom = state.pressure(2);
-            Rho01 = state.rho(2);
-        end
-        
-        PStaticTopCoords(i) = PstaticTop;
-        PStaticBottomCoords(i) = PstaticBottom;
-
-    end
-    
-    [PStaticSlipline, sliplineAngle] = ...
-        intersections(PStaticTopCoords, phi, PStaticBottomCoords, phi);
-
-    phi = sliplineAngle(1);
-
-    % x-value of imaginary slip line
-    x4 = x2 + lineLengthCoeff;
-
-    % y-value of imaginary slip line
-    y4 = y2+lineLengthCoeff*sind(phi(1));
-
-    plot([x2,x4],[y2,y4], 'm--');
+%     % Phi Values
+%     phi = linspace(-90,90,180); % degrees
+%     
+%     % last 2 top x-values
+%     x1 = xvalstop(length(xvalstop)-1);
+%     x2 = xvalstop(length(xvalstop));
+% 
+%     % last bottom x-value (not end pt)
+%     x3 = xvalsbottom(length(xvalsbottom)-1);
+%     
+%     % last 2 top y-values
+%     y1 = yvalstop(length(yvalstop)-1);
+%     y2 = yvalstop(length(yvalstop));
+% 
+%     % last bottom y-value (not end pt)
+%     y3 = yvalsbottom(length(yvalsbottom)-1);
+%     
+%     % Top line vector
+%     [vtopendcoords, vtopendlength] = vectorGenerator(x1,x2,y1,y2);
+%     vtopend = [vtopendcoords.xValue, vtopendcoords.yValue];
+% 
+%     % Extension of top line vector
+%     linfittopext = polyfit([x1, x2], [y1, y2], 1);
+%     [vtopendcoordsext, vtopendlengthext] = ...
+%         vectorGenerator(x2, 0.2+x2, y2,...
+%                     linfittopext(1)*(0.2+x2) + linfittopext(2));
+%     vtopendext = [vtopendcoordsext.xValue, vtopendcoordsext.yValue];
+% 
+%     % Bottom line vector
+%     [vbottomendcoords, vbottomendlength] = vectorGenerator(x3,x2,y3,y2);
+%     vbottomend = [vbottomendcoords.xValue, ...
+%         vbottomendcoords.yValue];
+% 
+%     % Extension of bottom line vector
+%     linfitbottomext = polyfit([x3, x2], [y3, y2], 1);
+%     [vbottomendcoordsext, vbottomendlengthext] = ...
+%         vectorGenerator(x2, 0.2+x2, y2,...
+%                     linfitbottomext(1)*(0.2+x2) + linfitbottomext(2));
+%     vbottomendext = [vbottomendcoordsext.xValue,...
+%         vbottomendcoordsext.yValue];
+% 
+%     for i = 1:length(phi)
+%         
+%         % x-value of imaginary slip line
+%         x4 = x2 + lineLengthCoeff;
+%     
+%         % y-value of imaginary slip line
+%         y4 = y2+lineLengthCoeff*sind(phi(i));
+% 
+%         % imaginary slip line vector
+%         [sliplinecoords, sliplinelength] = vectorGenerator(x3,x4,y3,y4);
+%         vslipline = [sliplinecoords.xValue, sliplinecoords.yValue];
+%     
+%         % "side c" for law of cosines - top
+%         [sidectopcoords, sidectoplength] = ...
+%             vectorGenerator(vtopendext(1), vslipline(1),...
+%             vtopendext(2), vslipline(2));
+%         vsidectop = [sidectopcoords.xValue, sidectopcoords.yValue];
+%     
+%         % "side c" for law of cosines - bottom
+%         [sidecbottomcoords, sidecbottomlength] = ...
+%             vectorGenerator(vbottomendext(1), vslipline(1),...
+%             vbottomendext(2), vslipline(2));
+%         vsidecbottom = [sidecbottomcoords.xValue,...
+%             sidecbottomcoords.yValue];
+%     
+%         % Vectors from
+%         
+%         % Compute Top Turning Angle via Vectors
+%         %   Law of Cosines
+%         thetaTop = acosd((vtopendlengthext^2 + sliplinelength^2 ...
+%             - sidectoplength^2) / (2 * vtopendlengthext ...
+%             * sliplinelength));     % degrees
+% 
+%         thetaDirectionTop = AngleIn2D(vtopendext,...
+%                     vslipline);
+%     
+%         % Compute Top Turning Angle via Vectors
+%         %   Law of Cosines
+%         thetaBottom = acosd((vbottomendlengthext^2 + sliplinelength^2 ...
+%             - sidecbottomlength^2) / (2 * vbottomendlengthext ...
+%             * sliplinelength));     % degrees
+% 
+%         thetaDirectionBottom = -AngleIn2D(vbottomendext,...
+%                     vslipline);
+%         
+%         if thetaDirectionTop < 0
+%             [~, nu1, ~] = flowprandtlmeyer(...
+%                 gamma, Mend(1), 'mach');
+%             nu2 = nu1 - thetaTop;
+%             [Mslip(1), nu2, ~] = flowprandtlmeyer(...
+%                 gamma, abs(nu2), 'nu');
+%             %   After
+%             [~, ~, P, rho, ~] = ...
+%                 flowisentropic(gamma, Mslip(1));
+%             PstaticTop = PendStag(1) / P;
+%             Rho01 = Rho01 * rho;
+%             
+%         else
+%             betaEnd(1) = InvertTBM(thetaTop, Mend(1), gamma, 1);
+%     
+%             % Flow Conditions
+%             state.mach = Mend(1);
+%             state.pressure = Pend(1);
+%             state.temp = Tend(1);
+%             state.rho = rhoEnd(1);
+%             
+%             shock.machNorm = Mend(1)*sind(betaEnd(1));
+%             shock.theta = thetaTop;
+%             shock.beta = betaEnd(1);
+% 
+%             fluid.gam = gamma;
+%             fluid.R = R;
+% 
+%             % Oblique Shock Properties
+%             [state, shock, ~] = oblique_shock(state,...
+%                 shock, fluid);
+%             PstaticTop = state.pressure(2);
+%             Rho01 = state.rho(2);
+%             Mslip(1) = state.mach(2);
+%         end
+% 
+%         if thetaDirectionBottom < 0
+%             [~, nu1, ~] = flowprandtlmeyer(...
+%                 gamma, Mend(1), 'mach');
+%             nu2 = nu1 - thetaBottom;
+%             [Mslip(2), nu2, ~] = flowprandtlmeyer(...
+%                 gamma, abs(nu2), 'nu');
+%             %   After
+%             [~, ~, P, rho, ~] = ...
+%                 flowisentropic(gamma, Mslip(2));
+%             PstaticBottom = PendStag(2) / P;
+%             Rho01 = Rho01 * rho;
+%             
+%         else
+%             betaEnd(2) = InvertTBM(thetaBottom, Mend(2), gamma, 1);
+%     
+%             % Flow Conditions
+%             state.mach = Mend(2);
+%             state.pressure = Pend(2);
+%             state.temp = Tend(2);
+%             state.rho = rhoEnd(2);
+%             
+%             shock.machNorm = Mend(2)*sind(betaEnd(2));
+%             shock.theta = thetaBottom;
+%             shock.beta = betaEnd(2);
+% 
+%             fluid.gam = gamma;
+%             fluid.R = R;
+% 
+%             % Oblique Shock Properties
+%             [state, shock, ~] = oblique_shock(state,...
+%                 shock, fluid);
+%             PstaticBottom = state.pressure(2);
+%             Rho01 = state.rho(2);
+%         end
+%         
+%         PStaticTopCoords(i) = PstaticTop;
+%         PStaticBottomCoords(i) = PstaticBottom;
+% 
+%     end
+%     
+%     [PStaticSlipline, sliplineAngle] = ...
+%         intersections(PStaticTopCoords, phi, PStaticBottomCoords, phi);
+% 
+%     phi = sliplineAngle(1);
+% 
+%     % x-value of imaginary slip line
+%     x4 = x2 + lineLengthCoeff;
+% 
+%     % y-value of imaginary slip line
+%     y4 = y2+lineLengthCoeff*sind(phi(1));
+% 
+%     plot([x2,x4],[y2,y4], 'm--');
 end
