@@ -1,0 +1,12 @@
+function [vectorCoordinates,vectorLength] = vectorGenerator(x1, x2, y1, y2)
+%vectorGenerator Generates a vector from 2 points' x- and y- values
+%   Inputs:
+%       x1
+
+vectorCoordinates.xValues = x2 - x1;
+vectorCoordinates.yValues = y2 - y1; 
+
+vectorLength = sqrt((vectorCoordinates.xValues)^2 + ...
+    (vectorCoordinates.yValues)^2);
+
+end

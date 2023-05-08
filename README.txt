@@ -35,7 +35,7 @@ File:		InvertTBM.m
 Author:		David Michael Willy
 Source URL:	N/A
 ==========================================================================
-File:		normal_shock.m
+File:		oblique_shock.m
 Author:		Jason Ryan
 Source URL:	https://www.mathworks.com/matlabcentral/fileexchange/44756
 		-oblique-shock-calculator
@@ -45,7 +45,23 @@ Requested
 		shock-calculator), MATLAB Central File Exchange. 
 		Retrieved May 5, 2023. 
 ==========================================================================
-File:		
-Author:		
-Source URL:	
+File:		intersections.m
+Author:		Douglas Schwarz
+Source URL:	https://www.mathworks.com/matlabcentral/fileexchange/
+		11837-fast-and-robust-curve-intersections
+Requested
+  Citation:	Douglas Schwarz (2023). Fast and Robust Curve 
+		Intersections (https://www.mathworks.com/matlabcentral/
+		fileexchange/11837-fast-and-robust-curve-intersections), 
+		MATLAB Central File Exchange. Retrieved May 3, 2023.
+==========================================================================
+Method:		Making Videos using Saved Images
+Author:		Mathworks
+Source URL:	https://www.mathworks.com/help/matlab/import_export/
+		convert-between-image-sequences-and-video.html
+==========================================================================
+Method:		Saving Images onto a Folder
+Author:		"Image Analyst"
+Source URL:	https://www.mathworks.com/matlabcentral/answers/344409-
+		saving-images-onto-a-folder
 ==========================================================================

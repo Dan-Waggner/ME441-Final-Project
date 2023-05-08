@@ -1,4 +1,4 @@
-function [state, shock, relations] = normal_shock(state, shock, fluid)
+function [state, shock, relations] = oblique_shock(state, shock, fluid)
 %normal_shock - Determines the properties after a normal shock
 %
 %   Input:
@@ -41,7 +41,7 @@ function [state, shock, relations] = normal_shock(state, shock, fluid)
 %% Initialize variables
 first = 1;
 second = 2;
-mach1 = state.mach(first);
+mach1 = state.mach(first) * sind(shock.beta);
 gam = fluid.gam;
 R = fluid.R;
 cp = R / (1 - 1/gam);
@@ -58,6 +58,10 @@ state.temp(second) = term2 / term1 * state.temp(first);
 % shock is oblique (state.mach(second) = shock.machNorm(second) if beta =
 % 90 and theta = 0 AKA normal shock conditions)
 state.mach(second) = shock.machNorm(second) / sind(shock.beta - shock.theta);
+%% Stagnation Pressure
+term3 = (2*gam*(state.mach(second))^2-(gam-1)) / (gam+1);
+state.stagPressure(second) = state.pressure(second) / term
+
 %% Create relations structure
 relations.shock.pressure = term2;
 relations.shock.temp = term2 / term1;
