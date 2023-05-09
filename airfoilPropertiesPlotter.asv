@@ -45,7 +45,7 @@ Rho01 = rho_flow * rhoi;
 % Incoming Flow Labeling
 propStr1 = join(["P=", join([num2str(round(Pstatic,2)),"Pa"])]);
 propStr2 = join(["T=",join([num2str(round(T1,2)),"K"])]);
-propStr3 = join(["Rho=",join([num2str(round(Rho01,4)),"kg/m^3"])]);
+propStr3 = join(["Rho=",join([num2str(round(Rho01,3)),"kg/m^3"])]);
 
 %%%%%%%%%%%%%%%% Plotting Expansion Fans / Oblique Shocks %%%%%%%%%%%%%%%%%
 
@@ -96,7 +96,7 @@ Fdrag = 0;
 phi = linspace(-20,20,10);
 Pstatics = zeros(2,length(phi));
 thetaDirections = zeros(2,length(phi));
-thetas = zeros(1,4);
+thetas = zeros(2,length(phi));
 Machs = zeros(1,4);
 Temps = zeros(1,4);
 TempStatics = zeros(1,4);
@@ -233,7 +233,13 @@ TempStatics = zeros(1,4);
             theta = acosd((vec1length^2 + vec2length^2 ...
                 - vec3length^2) / (2 * vec1length ...
                 * vec2length));     % degrees
-            thetas(j) = theta;
+            if j == 2
+                theta = theta + phi;
+                thetas(1,:) = theta;
+            elseif j == 4
+                theta = theta - phi;
+                thetas(2,:) = theta;
+            end
             
             %   Angle for Finding Lift/Drag Forces
             nu = alpha + rad2deg(AngleIn2D(vecAxis, ...
@@ -250,10 +256,10 @@ TempStatics = zeros(1,4);
                 thetaDirection = rad2deg(-1 * AngleIn2D(vec1,...
                     vec2));
                 if j == 4
-                thetaDirection = -(thetaDirection + -phi);
+                thetaDirection = (thetaDirection + -phi);
                 end
 
-                thetaDirections(2,:) = thetaDirection;
+                thetaDirections(2,:) = -thetaDirection;
                                             % degrees
             else
                 thetaDirection = rad2deg(AngleIn2D(vec1, vec2));
@@ -441,7 +447,7 @@ TempStatics = zeros(1,4);
                         append([join(["P=",...
                         num2str(round(Pstatic))]), "Pa"]),...
                         append([join(["T=",...
-                        num2str(round(Tstatic,2))]), "Kelvin"])];
+                        num2str(round(T1(1),2))]), "Kelvin"])];
 
                     % Placing Data onto Plot
                         text(xplotval, yplotval, dataStr); 
@@ -521,7 +527,7 @@ TempStatics = zeros(1,4);
                 %   Before
                 [~, nu1, ~] = flowprandtlmeyer(...
                     gamma, M1(j), 'mach');
-                nu2 = nu1 - (theta(j));
+                nu2 = nu1 - abs(theta(j));
                 [M2, nu2, ~] = flowprandtlmeyer(...
                     gamma, abs(nu2), 'nu');
                 %   After
