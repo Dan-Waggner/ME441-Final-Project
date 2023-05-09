@@ -45,7 +45,7 @@ Rho01 = rho_flow * rhoi;
 % Incoming Flow Labeling
 propStr1 = join(["P=", join([num2str(round(Pstatic,2)),"Pa"])]);
 propStr2 = join(["T=",join([num2str(round(T1,2)),"K"])]);
-propStr3 = join(["Rho=",join([num2str(round(Rho01)),"kg/m^3"])]);
+propStr3 = join(["Rho=",join([num2str(round(Rho01,4)),"kg/m^3"])]);
 
 %%%%%%%%%%%%%%%% Plotting Expansion Fans / Oblique Shocks %%%%%%%%%%%%%%%%%
 
@@ -86,33 +86,47 @@ for j = 1:2
     end
 end
 text((xvalstop(length(xvalstop)) + ...
-        xoffset),...
-        ylims(2) - yoffset,...
+        8*xoffset),...
+        0,...
         ["Slip", "Line", "Region"]);
 
 % Initialized Variables
 Flift = 0;
 Fdrag = 0;
+phi = linspace(-20,20,10);
+Pstatics = zeros(2,length(phi));
+thetaDirections = zeros(2,length(phi));
+thetas = zeros(1,4);
+Machs = zeros(1,4);
+Temps = zeros(1,4);
+TempStatics = zeros(1,4);
 % Evaluating airfoil as 2 halves
 %   j = 1: top half
-%   j = 2: bottom half
-    for j = 1:2
+%   j = 2: top slip
+%   j = 3: bottom half
+%   j = 4: bottom slip
+    for j = 1:4
         %Resetting the Current Mach No. back to the
         %   oncoming flow's velocity
         %   + properties
-        M1 = M1Init;
-        P01 = P_flow;
-        T01 = T_flow_abs;
-    
-        [~, T, P, ~, ~] = flowisentropic(gamma, M1);
-        T1 = T * T01;
-        Pstatic = P01 * P;
-        Rho01 = rho_flow * rhoi;  
+        if j == 1 || j == 3
+            M1(1) = M1Init;
+            P01 = P_flow;
+            T01 = T_flow_abs;
+        
+            [~, T, P, ~, ~] = flowisentropic(gamma, M1(1));
+            T1 = T * T01;
+            Pstatic = P01 * P;
+            Rho01 = rho_flow * rhoi; 
+        end
+         
         % Handling Top vs Bottom Cases
         if j == 1
            valueInterestLength = length(xvalstop); 
-        else
+        elseif j ==3
            valueInterestLength = length(xvalsbottom);
+        else
+            valueInterestLength = 3;
         end
         % Running Flow Analyses
         for i = 3:valueInterestLength
@@ -132,7 +146,7 @@ Fdrag = 0;
                 xplotval = x2+xoffset;
                 % y-plot coordinate for txt
                 yplotval = ylims(2) - yoffset;
-            else % bottom half of foil points
+            elseif j == 3 % bottom half of foil points
                 % x-values
                 x1 = xvalsbottom(i-2);
                 x2 = xvalsbottom(i-1);
@@ -141,6 +155,32 @@ Fdrag = 0;
                 y1 = yvalsbottom(i-2);
                 y2 = yvalsbottom(i-1);
                 y3 = yvalsbottom(i);
+                % x-plot coordinate for txt
+                xplotval = x2+4*xoffset;
+                % y-plot coordinate for txt
+                yplotval = ylims(1)+yoffset;
+            elseif j == 2   % top slip
+                % x-values
+                x1 = xvalstop(i-1);
+                x2 = xvalstop(i);
+                x3 = x2 + xoffset;
+                % y-values
+                y1 = yvalstop(i-1);
+                y2 = yvalstop(i);
+                y3 = y2 + yoffset;
+                % x-plot coordinate for txt
+                xplotval = x2+4*xoffset;
+                % y-plot coordinate for txt
+                yplotval = ylims(2)+yoffset;
+            else    % bottom slip
+                % x-values
+                x1 = xvalsbottom(i-1);
+                x2 = xvalsbottom(i);
+                x3 = x2 + xoffset;
+                % y-values
+                y1 = yvalsbottom(i-1);
+                y2 = yvalsbottom(i);
+                y3 = y2 + yoffset;
                 % x-plot coordinate for txt
                 xplotval = x2+4*xoffset;
                 % y-plot coordinate for txt
@@ -185,6 +225,7 @@ Fdrag = 0;
 
                 [vecAxisCoords, ~] = vectorGenerator(x2,x3,y2,y2);
                 vecAxis = [vecAxisCoords.xValue, vecAxisCoords.yValue];
+                
             end
             
             % Compute Turning Angles via Vectors
@@ -192,6 +233,7 @@ Fdrag = 0;
             theta = acosd((vec1length^2 + vec2length^2 ...
                 - vec3length^2) / (2 * vec1length ...
                 * vec2length));     % degrees
+            thetas(j) = theta;
             
             %   Angle for Finding Lift/Drag Forces
             nu = alpha + rad2deg(AngleIn2D(vecAxis, ...
@@ -202,133 +244,209 @@ Fdrag = 0;
             %       (+) Counter-Clockwise:
             %           Oblique Shockwave
             
-            if j == 2   % handling bottom side case
+            if j == 3 || j == 4   % handling bottom side case
                         %   via flipping angle along 
                         %   x-axis
-                thetaDirection = -1 * AngleIn2D(vec1,...
-                    vec2);
-                                            % radians
+                thetaDirection = rad2deg(-1 * AngleIn2D(vec1,...
+                    vec2));
+                if j == 4
+                thetaDirection = -(thetaDirection + -phi);
+                end
+
+                thetaDirections(2,:) = thetaDirection;
+                                            % degrees
             else
-                thetaDirection = AngleIn2D(vec1, vec2);
-                                            % radians
+                thetaDirection = rad2deg(AngleIn2D(vec1, vec2));
+                                            % degrees
+                if j == 2
+                thetaDirection = thetaDirection + phi;
+                end
+
+                thetaDirections(1,:) = thetaDirection;
+                
             end
             
+
             % Handling Cases
-            if thetaDirection < 0 % Expansion Fan
-                % Evaluating Properties
-                %   Before
-                [~, nu1, ~] = flowprandtlmeyer(...
-                    gamma, M1, 'mach');
-                nu2 = nu1 - theta;
-                [M1, nu2, ~] = flowprandtlmeyer(...
-                    gamma, abs(nu2), 'nu');
-                %   After
-                [~, T, P, rho, ~] = ...
-                    flowisentropic(gamma, M1);
-                Tstatic = T01 * T;
-                Pstatic = Pstatic * P;
-                Rho01 = Rho01 * rho;
-                % Lift/Drag Forces
-                Flift = Pstatic * vec2length * cosd(nu) + Flift;
-                Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
-    
-                % Prepping Data for Plotting
-                dataStr = [join(["M=",...
-                    num2str(round(M1,2))]),...
-                    append([join(["P=",...
-                    num2str(round(Pstatic,2))]), "Pa"]),...
-                    append([join(["T=",...
-                    num2str(round(Tstatic,2))]), "Kelvin"])];
-    
-                % handling bottom half of foil
-                %   via flipping angle along
-                %   x-axis
-                if j == 2
-                    nu1 = nu1 - 90;
-                    nu2 = nu2 - 90;
-                end
-
-                % Get last region's pressure value
-                if i == valueInterestLength
-                    Pend(j) = Pstatic;
-                    thetaEnd(j) = theta;
-                    Mend(j) = M1;
-                    Tend(j) = Tstatic;
-                    rhoEnd(j) = Rho01;
-                end
-                
-                % Plotting Expansion Fans
-                plot([x2, x2+lineLengthCoeff*cosd(nu1)],[y2, ...
-                    y2+lineLengthCoeff*sind(nu1)], 'r');
-                plot([x2, x2+lineLengthCoeff*cosd(nu2)],[y2, ...
-                    y2+lineLengthCoeff*sind(nu2)], 'r');
-    
-                % Placing Data onto Plot     
-                text(xplotval, yplotval, dataStr); 
+            for k = 1:length(theta)
+                if thetaDirection(k) < 0 % Expansion Fan
+                    % Evaluating Properties
+                    %   Before
+                    if M1 < 1
+                        continue
+                    else
+                        [~, nu1, ~] = flowprandtlmeyer(...
+                        gamma, M1, 'mach');
+                        nu2 = nu1 - abs(theta(k));
+                        [M1, nu2, ~] = flowprandtlmeyer(...
+                            gamma, abs(nu2), 'nu');
+                        %   After
+                        [~, T, P, rho, ~] = ...
+                            flowisentropic(gamma, M1);
+                        Tstatic = T01 * T;
+                        Pstatic = P01 * P;
+                        T1 = Tstatic;
+                        Rho01 = Rho01 * rho;
+                    end
+                    
+                    % Lift/Drag Forces
+                    if j == 1 || j == 3
+                        Flift = Pstatic * vec2length * cosd(nu) + Flift;
+                        Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
+                    end
         
-            elseif thetaDirection > 0 % Oblique Shock
-                beta = InvertTBM(theta, M1, gamma, 1);
+                    % Prepping Data for Plotting
+                    dataStr = [join(["M=",...
+                        num2str(round(M1,2))]),...
+                        append([join(["P=",...
+                        num2str(round(Pstatic))]), "Pa"]),...
+                        append([join(["T=",...
+                        num2str(round(Tstatic,2))]), "Kelvin"])];
+        
+                    % handling bottom half of foil
+                    %   via flipping angle along
+                    %   x-axis
+                    thetalog = theta(k);
+                    if j == 3 || j == 4
+                        nu1 = nu1 - 90;
+                        nu2 = nu2 - 90;
+                        thetalog = -theta(k);
+                    end
+                    thetas(j) = thetalog;
+                    
+                    % Get all static Pressures for varying thetas
+                    if j == 2 || j == 4
+                        if j == 2
+                            m = 1;
+                        elseif j == 4
+                            m = 2;
+                        end
+                        Pstatics(m,k) = Pstatic;
+                    end
+                    
     
-                % Flow Conditions
-                state.mach = M1;
-                state.pressure = Pstatic;
-                state.temp = T1;
-                state.rho = Rho01;
-                
-                shock.machNorm = M1*sind(beta);
-                shock.theta = theta;
-                shock.beta = beta;
+    %                 if i == valueInterestLength
+    %                     Pend(j) = Pstatic;
+    %                     PendStag(j) = P01;
+    %                     thetaEnd(j) = theta(k);
+    %                     Mend(j) = M1;
+    %                     Tend(j) = Tstatic;
+    %                     rhoEnd(j) = Rho01;
+    %                 end
+                    if j == 1 || j == 3
+                        % Plotting Expansion Fans
+                        plot([x2, x2+lineLengthCoeff*cosd(nu1)],[y2, ...
+                            y2+lineLengthCoeff*sind(nu1)], 'r');
+                        plot([x2, x2+lineLengthCoeff*cosd(nu2)],[y2, ...
+                            y2+lineLengthCoeff*sind(nu2)], 'r');
+            
+                        % Placing Data onto Plot     
+                        text(xplotval, yplotval, dataStr); 
+                    end
+
+                    Machs(j) = M1;
+                    Temps(j) = T01(1);
+                    TempStatics(j) = T1(1);
+
+                elseif thetaDirection(k) > 0 % Oblique Shock
+                    beta = InvertTBM(theta(k), M1, gamma, 1);
+        
+                    % Flow Conditions
+                    state.mach = M1;
+                    state.pressure = Pstatic;
+                    state.temp = T1;
+                    state.rho = Rho01;
+                    
+                    shock.machNorm = M1*sind(beta);
+                    shock.theta = theta(k);
+                    shock.beta = beta;
+        
+                    fluid.gam = gamma;
+                    fluid.R = R;
     
-                fluid.gam = gamma;
-                fluid.R = R;
+                    % Oblique Shock Properties
+                    [state, shock, ~] = oblique_shock(state,...
+                        shock, fluid);
+                    Tstatic = state.temp(2);
+                    Pstatic = state.pressure(2);
+                    M1 = state.mach(2);
+                    Rho01 = state.rho(2);
+                    P01 = state.stagPressure(2);
+                    T1 = Tstatic;
+    
+                    % Lift/Drag Forces
+                    if j == 1 || j == 3
+                        Flift = Pstatic * vec2length * cosd(nu) + Flift;
+                        Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
+                    end
+                    
+                    % Prepping Data for Plotting
+                    dataStr = [join(["M=",...
+                        num2str(round(M1,2))]),...
+                        append([join(["P=",...
+                        num2str(round(Pstatic))]), "Pa"]),...
+                        append([join(["T=",...
+                        num2str(round(Tstatic,2))]), "Kelvin"])];
+                    
+                    % handling bottom half of foil
+                    %   via flipping angle along
+                    %   x-axis
+                    thetalog = theta(k);
+                    if j == 3 || j == 4
+                        beta = beta - 90;
+                        thetalog = -theta(k); 
+                    end
+                    thetas(j) = thetalog;
+    
+                    % Get all static Pressures for varying thetas
+                    if j == 2 || j == 4
+                        if j == 2
+                            m = 1;
+                        elseif j == 4
+                            m = 2;
+                        end
+                        Pstatics(m,k) = Pstatic;
+                    end
+    
+                    % Plotting
+                    if j == 1 || j == 3
+                        % Placing Data onto Plot
+                        text(xplotval, yplotval, dataStr); 
+        
+                        % Plotting Oblique Shockwave
+                        plot([x2, x2+lineLengthCoeff*cosd(beta)], ...
+                            [y2, y2+lineLengthCoeff*sind(beta)], 'b--');
+                    else
+                        continue;
+                    end
+                    
+                    Machs(j) = M1(1);
+                    Temps(j) = T01(1);
+                    TempStatics(j) = T1(1);
+                    
+                else    
+                    % Case Where an Inputted Airfoil 
+                    %   Has Points Defining a Straight Edge
+                    
+                    % Since no new information is computed, prior info
+                    %   must be stored
+                    Machs(j) = M1(1);
+                    Temps(j) = T01(1);
+                    TempStatics(j) = T1(1);
+                    thetas(j) = 0;
 
-                % Oblique Shock Properties
-                [state, shock, ~] = normal_shock(state,...
-                    shock, fluid);
-                Tstatic = state.temp(2);
-                Pstatic = state.pressure(2);
-                M1 = state.mach(2);
-                Rho01 = state.rho(2);
+                    % Generating Data String
+                    dataStr = [join(["M=",...
+                        num2str(round(M1,2))]),...
+                        append([join(["P=",...
+                        num2str(round(Pstatic))]), "Pa"]),...
+                        append([join(["T=",...
+                        num2str(round(Tstatic,2))]), "Kelvin"])];
 
-                % Lift and Drag
-                Flift = Pstatic * vec2length * cosd(nu) + Flift;
-                Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
-                
-                % Prepping Data for Plotting
-                dataStr = [join(["M=",...
-                    num2str(round(M1,2))]),...
-                    append([join(["P=",...
-                    num2str(round(Pstatic,2))]), "Pa"]),...
-                    append([join(["T=",...
-                    num2str(round(Tstatic,2))]), "Kelvin"])];
-                
-                % handling bottom half of foil
-                %   via flipping angle along
-                %   x-axis
-                if j == 2
-                    beta = beta - 90;
+                    % Placing Data onto Plot
+                        text(xplotval, yplotval, dataStr); 
+                    continue;
                 end
-
-                % Get last region's pressure value
-                if i == valueInterestLength
-                    Pend(j) = Pstatic;
-                    thetaEnd(j) = theta;
-                    Mend(j) = M1;
-                    Tend(j) = Tstatic;
-                    rhoEnd(j) = Rho01;
-                end
-
-                % Placing Data onto Plot     
-                text(xplotval, yplotval, dataStr); 
-    
-                % Plotting Oblique Shockwave
-                plot([x2, x2+lineLengthCoeff*cosd(beta)], ...
-                    [y2, y2+lineLengthCoeff*sind(beta)], 'b--');
-                
-            else    
-                % Case Where an Inputted Airfoil 
-                %   Has Points Defining a Straight Edge
-                continue;
             end
         end
     end
@@ -348,168 +466,162 @@ Fdrag = 0;
     Fdrag = abs(Fdrag/1000); % kN/m
 
 %%%%%%%%%%%%%%%%%%%%%%%% Handling Slip Line Region %%%%%%%%%%%%%%%%%%%%%%%%
-    % Phi Values
-    phi = linspace(-90,90,90); % degrees
+
+    try
+    % Finding Correct Phi
+        [phi,Ps] = intersections(phi, Pstatics(1,:), phi, Pstatics(2,:));
+        [~, pos] = min(abs(phi));
+        SlipLineStaticP = Ps(pos);
+        SlipLineAngle = phi(pos);
     
-    % last 2 top x-values
-    x1 = xvalstop(length(xvalstop)-1);
-    x2 = xvalstop(length(xvalstop));
-
-    % last bottom x-value (not end pt)
-    x3 = xvalsbottom(length(xvalsbottom)-1);
+    % Prepping for Stat Calcs
+        thetaDirection = [thetaDirections(1,pos),thetaDirections(2,pos)];
+        theta = thetaDirection; 
     
-    % last 2 top y-values
-    y1 = yvalstop(length(yvalstop)-1);
-    y2 = yvalstop(length(yvalstop));
-
-    % last bottom y-value (not end pt)
-    y3 = yvalsbottom(length(yvalsbottom)-1);
+        M1 = [Machs(1), Machs(3)];
+        T01 = [Temps(1), Temps(3)];
+        T1 = [TempStatics(1),TempStatics(3)];
     
-    % Top line vector
-    [vtopendcoords, vtopendlength] = vectorGenerator(x1,x2,y1,y2);
-    vtopend = [vtopendcoords.xValue, vtopendcoords.yValue];
-
-    % Extension of top line vector
-    linfittopext = polyfit([x1, x2], [y1, y2], 1);
-    [vtopendcoordsext, vtopendlengthext] = ...
-        vectorGenerator(x2, 0.2+x2, y2,...
-                    linfittopext(1)*(0.2+x2) + linfittopext(2));
-    vtopendext = [vtopendcoordsext.xValue, vtopendcoordsext.yValue];
-
-    % Bottom line vector
-    [vbottomendcoords, vbottomendlength] = vectorGenerator(x3,x2,y3,y2);
-    vbottomend = [vbottomendcoords.xValue, ...
-        vbottomendcoords.yValue];
-
-    % Extension of bottom line vector
-    linfitbottomext = polyfit([x3, x2], [y3, y2], 1);
-    [vbottomendcoordsext, vbottomendlengthext] = ...
-        vectorGenerator(x2, 0.2+x2, y2,...
-                    linfitbottomext(1)*(0.2+x2) + linfitbottomext(2));
-    vbottomendext = [vbottomendcoordsext.xValue,...
-        vbottomendcoordsext.yValue];
-
-    for i = 1:length(phi)
+        % top x-values
+        x1(1) = xvalstop(length(xvalstop)-1);
+        x2(1) = xvalstop(length(xvalstop));
+        x3(1) = x2(1) + lineLengthCoeff*cosd(SlipLineAngle);
+        % top y-values
+        y1(1) = yvalstop(length(yvalstop)-1);
+        y2(1) = yvalstop(length(yvalstop));
+        y3(1) = y2(1) + lineLengthCoeff*sind(SlipLineAngle);
+        % bottom x-values
+        x1(2) = xvalsbottom(length(xvalsbottom)-1);
+        x2(2) = x2(1);
+        x3(2) = x3(1);
+        % bottom y-values
+        y1(2) = xvalsbottom(length(yvalsbottom)-1);
+        y2(2) = y2(1);
+        y3(2) = y3(1);
+    
+    % Plotting Slip Line
+        plot([x2(2),x3(2)], [y2(2),y3(2)], 'g--');
         
-        % x-value of imaginary slip line
-        x4 = x2 + lineLengthCoeff;
+        for j = 1:2
     
-        % y-value of imaginary slip line
-        y4 = y2+lineLengthCoeff*sind(phi(i));
-
-        % imaginary slip line vector
-        [sliplinecoords, sliplinelength] = vectorGenerator(x3,x4,y3,y4);
-        vslipline = [sliplinecoords.xValue, sliplinecoords.yValue];
+            if j == 1   % top slip
+                % x-plot coordinate for txt
+                xplotval = x2(j)+xoffset;
+                % y-plot coordinate for txt
+                yplotval = ylims(2) - yoffset;
+            else    % bottom slip
+                % x-plot coordinate for txt
+                xplotval = x2(j)+xoffset;
+                % y-plot coordinate for txt
+                yplotval = ylims(1)+yoffset;
+            end
     
-        % "side c" for law of cosines - top
-        [sidectopcoords, sidectoplength] = ...
-            vectorGenerator(vtopendext(1), vslipline(1),...
-            vtopendext(2), vslipline(2));
-        vsidectop = [sidectopcoords.xValue, sidectopcoords.yValue];
+            if thetaDirection(j) < 0 % Expansion Fan
+                % Evaluating Properties
+                %   Before
+                [~, nu1, ~] = flowprandtlmeyer(...
+                    gamma, M1(j), 'mach');
+                nu2 = nu1 - (theta(j));
+                [M2, nu2, ~] = flowprandtlmeyer(...
+                    gamma, abs(nu2), 'nu');
+                %   After
+                [~, T, ~, ~, ~] = ...
+                    flowisentropic(gamma, M2);
+                Tstatic = T01(j) * T;
+                Pstatic = SlipLineStaticP;
+                % Lift/Drag Forces
+                Flift = Pstatic * vec2length * cosd(nu) + Flift;
+                Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
+                
     
-        % "side c" for law of cosines - bottom
-        [sidecbottomcoords, sidecbottomlength] = ...
-            vectorGenerator(vbottomendext(1), vslipline(1),...
-            vbottomendext(2), vslipline(2));
-        vsidecbottom = [sidecbottomcoords.xValue,...
-            sidecbottomcoords.yValue];
+                % Prepping Data for Plotting
+                dataStr = [join(["M=",...
+                    num2str(round(M2,2))]),...
+                    append([join(["P=",...
+                    num2str(round(Pstatic))]), "Pa"]),...
+                    append([join(["T=",...
+                    num2str(round(Tstatic,2))]), "Kelvin"])];
     
-        % Vectors from
+                % handling bottom half of foil
+                %   via flipping angle along
+                %   x-axis
+                if j == 2
+                    nu1 = nu1 - 90;
+                    nu2 = nu2 - 90;
+                end
+    
+                % Plotting Expansion Fans
+                plot([x2(j), x2(j)+lineLengthCoeff*cosd(nu1)],[y2(j), ...
+                    y2(j)+lineLengthCoeff*sind(nu1)], 'r');
+                plot([x2(j), x2(j)+lineLengthCoeff*cosd(nu2)],[y2(j), ...
+                    y2(j)+lineLengthCoeff*sind(nu2)], 'r');
+    
+                % Placing Data onto Plot     
+                text(xplotval, yplotval, dataStr); 
         
-        % Compute Top Turning Angle via Vectors
-        %   Law of Cosines
-        thetaTop = acosd((vtopendlengthext^2 + sliplinelength^2 ...
-            - sidectoplength^2) / (2 * vtopendlengthext ...
-            * sliplinelength));     % degrees
-
-        thetaDirectionTop = AngleIn2D(vtopendext,...
-                    vslipline);
+            elseif thetaDirection(j) > 0 % Oblique Shock
+                beta = InvertTBM(theta(j), M1(j), gamma, 1);
     
-        % Compute Top Turning Angle via Vectors
-        %   Law of Cosines
-        thetaBottom = acosd((vbottomendlengthext^2 + sliplinelength^2 ...
-            - sidecbottomlength^2) / (2 * vbottomendlengthext ...
-            * sliplinelength));     % degrees
-
-        thetaDirectionBottom = -1 * AngleIn2D(vbottomendext,...
-                    vslipline);
-        
-        if thetaDirectionTop < 0
-            [~, nu1, ~] = flowprandtlmeyer(...
-                gamma, Mend(1), 'mach');
-            nu2 = nu1 - thetaTop;
-            [Mslip(1), nu2, ~] = flowprandtlmeyer(...
-                gamma, abs(nu2), 'nu');
-            %   After
-            [~, ~, P, rho, ~] = ...
-                flowisentropic(gamma, Mslip(1));
-            PstaticTop = Pend(1) * P;
-            Rho01 = Rho01 * rho;
+                % Flow Conditions
+                Pstatic = SlipLineStaticP;
+                
+                state.mach = M1(j);
+                state.pressure = Pstatic;
+                state.temp = T1(j);
+                state.rho = Rho01;
+                
+                shock.machNorm = M1(j)*sind(beta);
+                shock.theta = theta(j);
+                shock.beta = beta;
+    
+                fluid.gam = gamma;
+                fluid.R = R;
+    
+                % Oblique Shock Properties
+                [state, shock, ~] = oblique_shock(state,...
+                    shock, fluid);
+                Tstatic = state.temp(2);
+                Pstatic = SlipLineStaticP;
+                M2 = state.mach(2);
+                Rho01 = state.rho(2);
+    
+                % Lift/Drag Forces
+                Flift = Pstatic * vec2length * cosd(nu) + Flift;
+                Fdrag = Pstatic * vec2length * sind(nu) + Fdrag;
+                
+                % Prepping Data for Plotting
+                dataStr = [join(["M=",...
+                    num2str(round(M2,2))]),...
+                    append([join(["P=",...
+                    num2str(round(Pstatic))]), "Pa"]),...
+                    append([join(["T=",...
+                    num2str(round(Tstatic,2))]), "Kelvin"])];
+                
+                % handling bottom half of foil
+                %   via flipping angle along
+                %   x-axis
+                if j == 2
+                    beta = beta - 90;
+                end
+    
+                % Plotting
+                    % Placing Data onto Plot
+                    text(xplotval, yplotval, dataStr); 
+    
+                    % Plotting Oblique Shockwave
+                    plot([x2(j), x2(j)+lineLengthCoeff*cosd(beta)], ...
+                        [y2(j), y2(j)+lineLengthCoeff*sind(beta)], 'b--');
+                
+            else    
+                % Case Where an Inputted Airfoil 
+                %   Has Points Defining a Straight Edge
+                continue;
+            end
             
-        else
-            betaEnd(1) = InvertTBM(thetaTop, Mend(1), gamma, 1);
-    
-            % Flow Conditions
-            state.mach = Mend(1);
-            state.pressure = Pend(1);
-            state.temp = Tend(1);
-            state.rho = rhoEnd(1);
-            
-            shock.machNorm = Mend(1)*sind(betaEnd(1));
-            shock.theta = thetaTop;
-            shock.beta = betaEnd(1);
-
-            fluid.gam = gamma;
-            fluid.R = R;
-
-            % Oblique Shock Properties
-            [state, shock, ~] = normal_shock(state,...
-                shock, fluid);
-            PstaticTop = state.pressure(2);
-            Rho01 = state.rho(2);
         end
-
-        if thetaDirectionBottom < 0
-            [~, nu1, ~] = flowprandtlmeyer(...
-                gamma, Mend(1), 'mach');
-            nu2 = nu1 - thetaBottom;
-            [Mslip(2), nu2, ~] = flowprandtlmeyer(...
-                gamma, abs(nu2), 'nu');
-            %   After
-            [~, ~, P, rho, ~] = ...
-                flowisentropic(gamma, Mslip(2));
-            PstaticBottom = Pend(2) * P;
-            Rho01 = Rho01 * rho;
-            
-        else
-            betaEnd(2) = InvertTBM(thetaBottom, Mend(2), gamma, 1);
-    
-            % Flow Conditions
-            state.mach = Mend(2);
-            state.pressure = Pend(2);
-            state.temp = Tend(2);
-            state.rho = rhoEnd(1);
-            
-            shock.machNorm = Mend(2)*sind(betaEnd(2));
-            shock.theta = thetaBottom;
-            shock.beta = betaEnd(2);
-
-            fluid.gam = gamma;
-            fluid.R = R;
-
-            % Oblique Shock Properties
-            [state, shock, ~] = normal_shock(state,...
-                shock, fluid);
-            PstaticBottom = state.pressure(2);
-            Rho01 = state.rho(2);
-        end
+    catch
+        text(xplotval, yplotval, ["No Valid ", "Slip Line Found"]); 
         
-        PStaticTopCoords(i) = PstaticTop;
-        PStaticBottomCoords(i) = PstaticBottom;
-
     end
-    
-    [PStaticSlipline, sliplineAngle] = ...
-        intersections(PStaticTopCoords, phi, PStaticBottomCoords, phi);
 
 end

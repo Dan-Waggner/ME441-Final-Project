@@ -57,7 +57,7 @@ state.temp(second) = term2 / term1 * state.temp(first);
 % Corrects the normal component of mach number to actual mach number if the
 % shock is oblique (state.mach(second) = shock.machNorm(second) if beta =
 % 90 and theta = 0 AKA normal shock conditions)
-state.mach(second) = shock.machNorm(second) / sind(shock.beta - shock.theta);
+state.mach(second) = shock.machNorm(second) / sind(abs(shock.beta - shock.theta));
 %% Stagnation Pressure
 term3 = (2*gam*(state.mach(second))^2-(gam-1)) / (gam+1);
 state.stagPressure(second) = state.pressure(second) / term3;

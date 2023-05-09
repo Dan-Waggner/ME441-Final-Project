@@ -12,7 +12,7 @@ f= @(beta,theta,M) theta - atand(2*cotd(beta)* ...
     (((M^2)*((sind(beta))^2))-1)/(((g+(cosd(2*beta)))*M^2)+2));
 
 if strength==1
-    betaguess=60;      % feel free to change if things get buggy
+    betaguess=40;      % feel free to change if things get buggy
 elseif strength==2
     betaguess=80;
 end

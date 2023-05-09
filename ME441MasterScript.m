@@ -11,7 +11,7 @@ close all;
 format short;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Givens %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Angle of Attack
-alpha = 10;
+alpha = 0;
 % Requested Mach Number(s)
 M1Init = 3.0; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%% Initial Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,7 +62,7 @@ for k = 1:length(alpha)
     fig = figure("Resize","off",'visible','off');
 %   Display Status of Generation
     fprintf(join(["Generating frame ", num2str(floor(k)),...
-        " of ", num2str(floor(length(alpha))), "\n"]));
+        " of ", num2str(floor(length(alpha))), "...\n"]));
 %   Generate Graph
     hold on;
     flowVectorMag = 0.2;
@@ -83,8 +83,6 @@ for k = 1:length(alpha)
 %   Recording Lift/Drag forces
     FL(k) = Flift;
     FD(k) = Fdrag;
-%   Notifying that System is Saving Current Frame
-    fprintf("Saving Frame...\n");
 %   Pause for 1s to Enhance Performance (hopefully)
     pause(1);
 %   Generate File Name
@@ -114,7 +112,7 @@ for ii = 1:length(imageNames)
 %   User Notification that Images are Being Read
     fprintf(join(["Reading ", num2str(floor(ii)), ...
         " of ", num2str(floor(length(imageNames))),...
-        " frames...\n"]));
+        " images...\n"]));
 %   Read Images
    img = imread(fullfile(workingDir,'images',imageNames{ii}));
 %   Send Images to File
@@ -134,12 +132,14 @@ while hasFrame(airfoilAnimation)
    mov(ii) = im2frame(readFrame(airfoilAnimation));
    ii = ii+1;
 end
+fprintf("Running Animation...\n");
+pause(1);
 %Play Video
 figure;
 %   Set Video Format
 imshow(mov(1).cdata, 'Border', 'tight');
 %   Play Animation
-movie(mov, 20)
+movie(mov, 20, 5);
 
 
 %   salesartillery.com/fs/top-100-aerospace-companies
