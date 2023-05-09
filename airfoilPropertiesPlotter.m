@@ -45,7 +45,7 @@ Rho01 = rho_flow * rhoi;
 % Incoming Flow Labeling
 propStr1 = join(["P=", join([num2str(round(Pstatic,2)),"Pa"])]);
 propStr2 = join(["T=",join([num2str(round(T1,2)),"K"])]);
-propStr3 = join(["Rho=",join([num2str(round(Rho01,4)),"kg/m^3"])]);
+propStr3 = join(["Rho=",join([num2str(round(Rho01,3)),"kg/m^3"])]);
 
 %%%%%%%%%%%%%%%% Plotting Expansion Fans / Oblique Shocks %%%%%%%%%%%%%%%%%
 

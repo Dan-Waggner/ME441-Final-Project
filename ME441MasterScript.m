@@ -139,7 +139,7 @@ figure;
 %   Set Video Format
 imshow(mov(1).cdata, 'Border', 'tight');
 %   Play Animation
-movie(mov, 20, 5);
+movie(mov, 2000, 5);
 
 
 %   salesartillery.com/fs/top-100-aerospace-companies
