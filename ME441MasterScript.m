@@ -14,7 +14,7 @@ format short;
 alpha = 0;
 % Requested Mach Number(s)
 M1Init = 3.0; 
-%%%%%%%%%%%%%%%%%%%%%%%%%%% Initial Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Initial Plot %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Variable DFNs
 %Flow Vector
 flowVectorMag = 0.2;
@@ -27,20 +27,27 @@ yvalstop = [flowVectorPosy, 0, 0.1, 0.075, 0];
 % Bottom Coordinates
 xvalsbottom = [flowVectorPosx, 0, 1.0];
 yvalsbottom = [flowVectorPosy, 0, 0];
-%%%%%%%%%%%%%%%%%%%%%%%%%%  Assumptions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   1. Acting Fluid is Air modeled as a callorically perfect gas
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Assumptions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   1. Acting Fluid is Air modeled as a calorically perfect gas
 %   2. Frictionless Flow (Inviscid)
 %   3. Fluid is Air @ STP
+%   4. Flow is Adiabatic
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Via Assumptions
 gamma = 1.4;
 R = 287; % J/kg-K
 T_flow_abs = 20+273; % k
 P_flow = 101325; % Pa
-rho_flow = 1.21; % kg/m^3
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+rho_flow = P_flow / (R * T_flow_abs); % kg/m^3
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Various Calcs %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Speed of Sound
+a = sqrt(gamma * R * T_flow_abs);
+% Flow Speed
+v_flow = M1Init * a; % m/s
+% Dynamic Pressure
+P_dyn = 0.5 * rho_flow * v_flow^2;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%% Animation Figures %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Part 1
-alpha = 10;
 figure(1);
 hold on;
 [Flift, Fdrag] = ...
@@ -50,6 +57,7 @@ hold on;
 fprintf("Lift and Drag  %4.2f kN/m and %4.2f kN/m\n", ...
         Flift, Fdrag);
 hold off;
+pause(1);
 %% Part 2
 %Varying Alpha
 alpha = -10:1:10; 
@@ -98,6 +106,58 @@ for k = 1:length(alpha)
     hold off;
     close(fig);
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Plots %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%Recording/Graphing Forces / Force Coefficients
+%   Chord Length
+    L = 1;
+%   Width
+    W = 1; % Unitz
+%   Planform Area
+    Ap = L*W; % m^2
+% Coefficients
+%   Lift
+Cl = 2 * FL / (v_flow * Ap);
+%   Drag
+Cd = 2 * FD / (v_flow * Ap);
+% Lift/Drag/Coefficients vs Alpha
+tiledlayout(2,2);
+figure(100); 
+nexttile;
+grid on;
+hold on;
+plot(alpha, FL/1000, 'DisplayName','Lift vs AoA');
+title('Lift vs AoA');
+xlabel('Angle of Attack, Degrees');
+ylabel('Force of Lift, kN/m');
+hold off;
+
+nexttile;
+grid on;
+hold on
+plot(alpha, FD/1000, 'DisplayName','Drag vs AoA');
+title('Drag vs AoA');
+xlabel('Angle of Attack, Degrees');
+ylabel('Force of Drag, kN/m');
+hold off;
+
+nexttile;
+grid on;
+hold on;
+plot(alpha, Cl);
+title(['Coefficient of Lift',' vs AoA']);
+xlabel('Angle of Attack, Degrees');
+ylabel('Coefficient of Drag');
+hold off;
+
+nexttile;
+grid on;
+hold on;
+plot(alpha, Cd);
+title(['Coefficient of Drag', ' vs AoA']);
+xlabel('Angle of Attack, Degrees');
+ylabel('Coefficient of Drag');
+hold off;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Animations %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %Generating Animation
 % User Notification
 fprintf("Generating Animation...\n");
